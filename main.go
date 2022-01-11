@@ -78,7 +78,7 @@ var (
 		"gelbooru": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			// Booru tags
 			tags := i.ApplicationCommandData().Options[0].StringValue()
-			postl, errg := boorufetch.FromDanbooru(tags, 0, 100)
+			postl, errg := boorufetch.FromDanbooru(tags, 0, 100) // Booru fetch FromGelbooru is broken bc Gelbooru updated their API, change this when/if they fix it
 			postlLen := len(postl)
 			channel, errc := s.Channel(i.ChannelID)
 			if errc != nil {
