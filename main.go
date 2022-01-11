@@ -2,14 +2,12 @@ package main
 
 import (
 	"flag"
-	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/bakape/boorufetch"
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
 )
@@ -32,30 +30,14 @@ var s *discordgo.Session
 
 func init() { flag.Parse() }
 
-var (
-	// if you search these consider suicide
-	nevertags = []string{"futanari", "futa", "loli", "poop", "scat", "feces", "guro", "shota", "furry"}
-	// only allowed in nsfw channels
-	badtags = []string{"sex", "rape", "breasts", "penis", "pussy", "vaginal", "anal", "rating:explicit", "rating:questionable"}
-
-	nevertag string = ""
-	badtag   string = ""
-)
+// if you search these consider suicide, leave a space in front
+var bannedtags string = " -futanari -futa -loli -poop -scat -feces -guro -shota -furry"
 
 func init() {
 	var err error
 	s, err = discordgo.New("Bot " + *BotToken)
 	if err != nil {
 		log.Fatalf("Invalid bot parameters: %v", err)
-	}
-
-	for i := 0; i < len(nevertags); i++ {
-		nevertag += nevertags[i]
-		nevertag += " "
-	}
-	for i := 0; i < len(badtags); i++ {
-		badtag += badtags[i]
-		badtag += " "
 	}
 }
 
@@ -78,33 +60,22 @@ var (
 		"gelbooru": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			// Booru tags
 			tags := i.ApplicationCommandData().Options[0].StringValue()
-			postl, errg := boorufetch.FromDanbooru(tags, 0, 100) // Booru fetch FromGelbooru is broken bc Gelbooru updated their API, change this when/if they fix it
-			postlLen := len(postl)
+			tags += bannedtags
 			channel, errc := s.Channel(i.ChannelID)
 			if errc != nil {
-				log.Fatalf("Cannot getting the channel: %v", errc)
+				log.Fatalf("Error getting the channel: %v", errc)
 			}
-			s1 := rand.NewSource(time.Now().UnixNano())
-			r1 := rand.New(s1)
 
-			if (!channel.NSFW && isNSFW(tags)) || isNever(tags) {
+			post, found, errg := Gelbooru(tags, channel.NSFW)
+			if errg != nil {
+				log.Fatalf("Error getting Gelbooru post: %v", errg)
+			}
+			if !found {
 				embed := &discordgo.MessageEmbed{
-					Title:       "Gelbooru - Tag not allowed",
+					Title:       "Gelbooru - Nothing found",
 					Color:       0xBF616A,
-					Description: "Tags: `" + tags + "`",
-					Fields: []*discordgo.MessageEmbedField{
-						&discordgo.MessageEmbedField{
-							Name:   "Banned in non NSFW channels",
-							Value:  badtag,
-							Inline: true,
-						},
-						&discordgo.MessageEmbedField{
-							Name:   "Banned Everywhere",
-							Value:  nevertag,
-							Inline: true,
-						},
-					},
-					Timestamp: time.Now().Format(time.RFC3339),
+					Description: "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`",
+					Timestamp:   time.Now().Format(time.RFC3339),
 				}
 
 				embeds := []*discordgo.MessageEmbed{embed}
@@ -115,56 +86,8 @@ var (
 						Embeds: embeds,
 					},
 				})
-			} else if postlLen != 0 {
-				post := postl[r1.Intn(postlLen)]
-				rating, errr := post.Rating()
-				if errr != nil {
-					log.Fatalf("Error getting rating: %v", errr)
-				}
-
-				channel, errc := s.Channel(i.ChannelID)
-				if errc != nil {
-					log.Fatalf("Cannot open the session: %v", errc)
-				}
-
-				if !channel.NSFW {
-					count := 0
-					for rating != 0 {
-						if count > (postlLen - 1) {
-							log.Info("NSFW attempted in non NSFW channel, no safe post found")
-							embed := &discordgo.MessageEmbed{
-								Title:       "Gelbooru - Post was NSFW, no safe posts found",
-								Color:       0xBF616A,
-								Description: "Tags: `" + tags + "`",
-								Timestamp:   time.Now().Format(time.RFC3339),
-							}
-
-							embeds := []*discordgo.MessageEmbed{embed}
-
-							s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-								Type: discordgo.InteractionResponseChannelMessageWithSource,
-								Data: &discordgo.InteractionResponseData{
-									Embeds: embeds,
-								},
-							})
-							break
-						}
-						log.Info("Wanted to post NSFW in non NSFW channel, finding new, count " + strconv.Itoa(count))
-						s1 = rand.NewSource(time.Now().UnixNano())
-						r1 = rand.New(s1)
-						post = postl[r1.Intn(postlLen)]
-						rating, errr = post.Rating()
-						if errr != nil {
-							log.Fatalf("Cannot open the session: %v", errr)
-						}
-						if rating == 0 {
-							break
-						}
-						count++
-					}
-				}
-
-				source := post.SourceURL()
+			} else {
+				source := post.Source
 				sourceSite := "Source"
 				if strings.Contains(source, "pixiv") || strings.Contains(source, "pximg") {
 					sourceSite = "Pixiv"
@@ -179,7 +102,7 @@ var (
 				embed := &discordgo.MessageEmbed{
 					Title:       "Gelbooru",
 					Color:       0xA3BE8C,
-					Description: "Tags: `" + tags + "`",
+					Description: "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`",
 					Fields: []*discordgo.MessageEmbedField{
 						&discordgo.MessageEmbedField{
 							Name:   "Image Source",
@@ -188,33 +111,14 @@ var (
 						},
 						&discordgo.MessageEmbedField{
 							Name:   "Dimensions",
-							Value:  strconv.FormatUint(post.Height(), 10) + "x" + strconv.FormatUint(post.Width(), 10),
+							Value:  strconv.Itoa(post.Height) + "x" + strconv.Itoa(post.Width),
 							Inline: true,
 						},
 					},
 					Image: &discordgo.MessageEmbedImage{
-						URL: post.FileURL(),
+						URL: post.FileURL,
 					},
 					Timestamp: time.Now().Format(time.RFC3339),
-				}
-
-				embeds := []*discordgo.MessageEmbed{embed}
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: embeds,
-					},
-				})
-			} else {
-				if errg != nil {
-					log.Fatalf("No posts found!: %v", errg)
-				}
-				embed := &discordgo.MessageEmbed{
-					Title:       "Gelbooru - Nothing found",
-					Color:       0xBF616A,
-					Description: "Tags: `" + tags + "`",
-					Timestamp:   time.Now().Format(time.RFC3339),
 				}
 
 				embeds := []*discordgo.MessageEmbed{embed}
@@ -229,24 +133,6 @@ var (
 		},
 	}
 )
-
-func isNever(tags string) bool {
-	for i := 0; i < len(nevertags); i++ {
-		if strings.Contains(tags, nevertags[i]) {
-			return true
-		}
-	}
-	return false
-}
-
-func isNSFW(tags string) bool {
-	for i := 0; i < len(badtags); i++ {
-		if strings.Contains(tags, badtags[i]) {
-			return true
-		}
-	}
-	return false
-}
 
 func init() {
 	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
