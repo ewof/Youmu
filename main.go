@@ -23,7 +23,7 @@ var log = &logrus.Logger{
 
 // Bot parameters
 var (
-	GuildID        = flag.String("guild", "856400695975608361", "Test guild ID. If not passed - bot registers commands globally")
+	GuildID        = flag.String("guild", "924047241096876044", "Test guild ID. If not passed - bot registers commands globally")
 	BotToken       = flag.String("token", os.Getenv("YOUMU_TOKEN"), "Bot access token")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
 )
@@ -32,18 +32,35 @@ var s *discordgo.Session
 
 func init() { flag.Parse() }
 
+var (
+	// if you search these consider suicide
+	nevertags = []string{"futanari", "futa", "loli", "poop", "scat", "feces", "guro", "shota", "furry"}
+	// only allowed in nsfw channels
+	badtags = []string{"sex", "rape", "breasts", "penis", "pussy", "vaginal", "anal", "rating:explicit", "rating:questionable"}
+
+	nevertag string = ""
+	badtag   string = ""
+)
+
 func init() {
 	var err error
 	s, err = discordgo.New("Bot " + *BotToken)
 	if err != nil {
 		log.Fatalf("Invalid bot parameters: %v", err)
 	}
+
+	for i := 0; i < len(nevertags); i++ {
+		nevertag += nevertags[i]
+		nevertag += " "
+	}
+	for i := 0; i < len(badtags); i++ {
+		badtag += badtags[i]
+		badtag += " "
+	}
 }
 
 var (
-	nevertags = []string{"futanari", "futa", "loli", "poop", "scat", "feces", "guro", "shota", "furry"}
-	badtags   = []string{"sex", "rape", "breasts", "penis", "pussy", "vaginal", "anal", "rating:explicit", "rating:questionable"}
-	commands  = []*discordgo.ApplicationCommand{
+	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "gelbooru",
 			Description: "Search gelbooru",
@@ -79,12 +96,12 @@ var (
 					Fields: []*discordgo.MessageEmbedField{
 						&discordgo.MessageEmbedField{
 							Name:   "Banned in non NSFW channels",
-							Value:  "sex rape breasts penis pussy vaginal anal rating:explicit rating:questionable",
+							Value:  badtag,
 							Inline: true,
 						},
 						&discordgo.MessageEmbedField{
 							Name:   "Banned Everywhere",
-							Value:  "futanari futa loli poop scat feces guro shota furry",
+							Value:  nevertag,
 							Inline: true,
 						},
 					},
@@ -117,7 +134,7 @@ var (
 				if !channel.NSFW {
 					count := 0
 					for rating != 0 {
-						if count > 99 {
+						if count > (postlLen - 1) {
 							log.Info("NSFW attempted in non NSFW channel, no safe post found")
 							embed := &discordgo.MessageEmbed{
 								Title:       "Gelbooru - Post was NSFW, no safe posts found",
