@@ -79,8 +79,7 @@ var (
 			// Booru tags
 			tags := i.ApplicationCommandData().Options[0].StringValue()
 			postl, errg := boorufetch.FromDanbooru(tags, 0, 100)
-			// postlLen := len(postl)
-			postlLen := 100
+			postlLen := len(postl)
 			channel, errc := s.Channel(i.ChannelID)
 			if errc != nil {
 				log.Fatalf("Cannot getting the channel: %v", errc)
@@ -117,9 +116,6 @@ var (
 					},
 				})
 			} else if postlLen != 0 {
-				if errg != nil {
-					log.Fatalf("No posts found!: %v", errg)
-				}
 				post := postl[r1.Intn(postlLen)]
 				rating, errr := post.Rating()
 				if errr != nil {
@@ -211,6 +207,9 @@ var (
 					},
 				})
 			} else {
+				if errg != nil {
+					log.Fatalf("No posts found!: %v", errg)
+				}
 				embed := &discordgo.MessageEmbed{
 					Title:       "Gelbooru - Nothing found",
 					Color:       0xBF616A,
