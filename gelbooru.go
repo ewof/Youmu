@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-type PostA struct {
-	PostA []Post `json:"post"`
+type Posts struct {
+	Posts []Post `json:"post"`
 }
 
 type Post struct {
@@ -64,29 +64,31 @@ func Gelbooru(tags string, nsfw bool) (post Post, found bool, err error) {
 
 	body, err := ioutil.ReadAll(res.Body)
 
-	post_ := PostA{}
-	err = json.Unmarshal(body, &post_)
+	posts := Posts{}
+	err = json.Unmarshal(body, &posts)
 
 	s1 := rand.NewSource(time.Now().UnixNano())
 	r1 := rand.New(s1)
 
-	if len(post_.PostA) <= 0 {
+	if len(posts.Posts) <= 0 {
 		found = false
 		return
 	}
 
-	post_L := len(post_.PostA)
-	post = post_.PostA[r1.Intn(post_L)]
+	Posts := posts.Posts
+
+	postsLen := len(Posts)
+	post = Posts[r1.Intn(postsLen)]
 	if post.Rating != "safe" && !nsfw {
 		count := 0
 		for post.Rating != "safe" {
-			if count > (post_L - 1) {
+			if count > (postsLen - 1) {
 				found = false
 				break
 			}
 			s1 := rand.NewSource(time.Now().UnixNano())
 			r1 := rand.New(s1)
-			post = post_.PostA[r1.Intn(len(post_.PostA))]
+			post = Posts[r1.Intn(postsLen)]
 			if post.Rating == "safe" {
 				break
 			}
