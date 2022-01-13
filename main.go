@@ -131,10 +131,14 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 		log.Fatalf("Error getting Gelbooru post: %v", errg)
 	}
 	if !found {
+		description := "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`"
+		if !channel.NSFW {
+			description += "\nMaybe you search an nsfw tag in a non-nsfw channel?"
+		}
 		embed := &discordgo.MessageEmbed{
 			Title:       "Gelbooru - Nothing found",
 			Color:       0xBF616A,
-			Description: "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`" + "\nMaybe you searched an nsfw tag in a non-nsfw channel?",
+			Description: description,
 			Timestamp:   time.Now().Format(time.RFC3339),
 		}
 
