@@ -133,7 +133,7 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 	if !found {
 		description := "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`"
 		if !channel.NSFW {
-			description += "\nMaybe you search an nsfw tag in a non-nsfw channel?"
+			description += "\nMaybe you searched an nsfw tag in a non-nsfw channel?"
 		}
 		embed := &discordgo.MessageEmbed{
 			Title:       "Gelbooru - Nothing found",
