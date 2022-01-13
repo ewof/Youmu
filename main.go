@@ -56,7 +56,7 @@ var (
 			},
 		},
 		{
-			Name: "characterlist",
+			Name:        "characterlist",
 			Description: "List all of the characters for `/character`",
 		},
 		{
@@ -221,5 +221,5 @@ func main() {
 	stop := make(chan os.Signal)
 	signal.Notify(stop, os.Interrupt)
 	<-stop
-	log.Info("\nGracefully shutdowning")
+	log.Info("Shutting down...")
 }
