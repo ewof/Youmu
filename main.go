@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -131,7 +132,7 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 		log.Fatalf("Error getting Gelbooru post: %v", errg)
 	}
 	if !found {
-		description := "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`"
+		description := fmt.Sprintf("Tags: `%s`", i.ApplicationCommandData().Options[0].StringValue())
 		if !channel.NSFW {
 			description += "\nMaybe you searched an nsfw tag in a non-nsfw channel?"
 		}
@@ -170,7 +171,7 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 			Fields: []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
 					Name:   "Image Source",
-					Value:  "[" + sourceSite + "](" + source + ")",
+					Value: fmt.Sprintf("[%s](%s)", sourceSite, source),
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
