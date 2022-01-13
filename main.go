@@ -167,6 +167,11 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 				&discordgo.MessageEmbedField{
 					Name:   "Image Source",
 					Value:  "[" + sourceSite + "](" + source + ")",
+					Inline: false,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "Gelbooru ID",
+					Value:  strconv.Itoa(post.ID),
 					Inline: true,
 				},
 				&discordgo.MessageEmbedField{
