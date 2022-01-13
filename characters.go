@@ -32,6 +32,7 @@ var characters = map[string]string{
 	"yumemi":       "okazaki_yumemi",
 	"shinki":       "shinki",
 	"lily":         "lily_white",
+	"jo'on":        "yorigami_jo'on",
 	"shion":        "yorigami_shion", // the better of the two
 	"seiran":       "seiran_(touhou)",
 	"koakuma":      "koakuma",
@@ -144,9 +145,10 @@ var characters = map[string]string{
 }
 
 var characterlist string = "`"
+
 func init() {
 	for name := range characters {
-		characterlist+=(name + " ")
+		characterlist += (name + " ")
 	}
-	characterlist+="`"
+	characterlist += "`"
 }
