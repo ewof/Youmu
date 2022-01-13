@@ -30,7 +30,7 @@ var s *discordgo.Session
 
 func init() { flag.Parse() }
 
-// if you search these consider suicide, leave a space in front
+// if you search these consider suicide. leave a space in front
 var bannedtags string = " -futanari -futa -loli -poop -scat -feces -guro -shota -furry"
 
 func init() {
@@ -45,7 +45,7 @@ var (
 	commands = []*discordgo.ApplicationCommand{
 		{
 			Name:        "gelbooru",
-			Description: "Search gelbooru",
+			Description: "Search Gelbooru",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -55,70 +55,54 @@ var (
 				},
 			},
 		},
+		{
+			Name: "characterlist",
+			Description: "List all of the characters for `/character`",
+		},
+		{
+			Name:        "character",
+			Description: "Search Gelbooru for character",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "charcter",
+					Description: "character to search for (do /characterlist for options)",
+					Required:    true,
+				},
+			},
+		},
 	}
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"gelbooru": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			// Booru tags
-			tags := i.ApplicationCommandData().Options[0].StringValue()
-			tags += bannedtags
-			channel, errc := s.Channel(i.ChannelID)
-			if errc != nil {
-				log.Fatalf("Error getting the channel: %v", errc)
+			sendGelbooru(s, i, i.ApplicationCommandData().Options[0].StringValue())
+		},
+		"characterlist": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			embed := &discordgo.MessageEmbed{
+				Title:       "Character List",
+				Color:       0xA3BE8C,
+				Description: characterlist,
+				Timestamp:   time.Now().Format(time.RFC3339),
 			}
 
-			post, found, errg := Gelbooru(tags, channel.NSFW)
-			if errg != nil {
-				log.Fatalf("Error getting Gelbooru post: %v", errg)
-			}
-			if !found {
-				embed := &discordgo.MessageEmbed{
-					Title:       "Gelbooru - Nothing found",
-					Color:       0xBF616A,
-					Description: "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`",
-					Timestamp:   time.Now().Format(time.RFC3339),
-				}
+			embeds := []*discordgo.MessageEmbed{embed}
 
-				embeds := []*discordgo.MessageEmbed{embed}
-
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: embeds,
-					},
-				})
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: embeds,
+				},
+			})
+		},
+		// Wanted to make this autocomplete but discord only allows for 25 choices
+		"character": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			if val, ok := characters[i.ApplicationCommandData().Options[0].StringValue()]; ok {
+				sendGelbooru(s, i, val)
 			} else {
-				source := post.Source
-				sourceSite := "Source"
-				if strings.Contains(source, "pixiv") || strings.Contains(source, "pximg") {
-					sourceSite = "Pixiv"
-				} else if strings.Contains(source, "twitter") {
-					sourceSite = "Twitter"
-				} else if strings.Contains(source, "nicovideo") {
-					sourceSite = "NicoNico"
-				} else if strings.Contains(source, "deviantart") {
-					sourceSite = "DeviantArt"
-				}
-
 				embed := &discordgo.MessageEmbed{
-					Title:       "Gelbooru",
-					Color:       0xA3BE8C,
-					Description: "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`",
-					Fields: []*discordgo.MessageEmbedField{
-						&discordgo.MessageEmbedField{
-							Name:   "Image Source",
-							Value:  "[" + sourceSite + "](" + source + ")",
-							Inline: true,
-						},
-						&discordgo.MessageEmbedField{
-							Name:   "Dimensions",
-							Value:  strconv.Itoa(post.Height) + "x" + strconv.Itoa(post.Width),
-							Inline: true,
-						},
-					},
-					Image: &discordgo.MessageEmbedImage{
-						URL: post.FileURL,
-					},
-					Timestamp: time.Now().Format(time.RFC3339),
+					Title:       "Character - not found",
+					Color:       0xBF616A,
+					Description: "Do `/characterlist` for a list of characters",
+					Timestamp:   time.Now().Format(time.RFC3339),
 				}
 
 				embeds := []*discordgo.MessageEmbed{embed}
@@ -133,6 +117,80 @@ var (
 		},
 	}
 )
+
+func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags string) {
+	orig_tags := tags
+	tags += bannedtags
+	channel, errc := s.Channel(i.ChannelID)
+	if errc != nil {
+		log.Fatalf("Error getting the channel: %v", errc)
+	}
+
+	post, found, errg := Gelbooru(tags, channel.NSFW)
+	if errg != nil {
+		log.Fatalf("Error getting Gelbooru post: %v", errg)
+	}
+	if !found {
+		embed := &discordgo.MessageEmbed{
+			Title:       "Gelbooru - Nothing found",
+			Color:       0xBF616A,
+			Description: "Tags: `" + i.ApplicationCommandData().Options[0].StringValue() + "`",
+			Timestamp:   time.Now().Format(time.RFC3339),
+		}
+
+		embeds := []*discordgo.MessageEmbed{embed}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: embeds,
+			},
+		})
+	} else {
+		source := post.Source
+		sourceSite := "Source"
+		if strings.Contains(source, "pixiv") || strings.Contains(source, "pximg") {
+			sourceSite = "Pixiv"
+		} else if strings.Contains(source, "twitter") {
+			sourceSite = "Twitter"
+		} else if strings.Contains(source, "nicovideo") {
+			sourceSite = "NicoNico"
+		} else if strings.Contains(source, "deviantart") {
+			sourceSite = "DeviantArt"
+		}
+
+		embed := &discordgo.MessageEmbed{
+			Title:       "Gelbooru",
+			Color:       0xA3BE8C,
+			Description: "Tags: `" + orig_tags + "`",
+			Fields: []*discordgo.MessageEmbedField{
+				&discordgo.MessageEmbedField{
+					Name:   "Image Source",
+					Value:  "[" + sourceSite + "](" + source + ")",
+					Inline: true,
+				},
+				&discordgo.MessageEmbedField{
+					Name:   "Dimensions",
+					Value:  strconv.Itoa(post.Height) + "x" + strconv.Itoa(post.Width),
+					Inline: true,
+				},
+			},
+			Image: &discordgo.MessageEmbedImage{
+				URL: post.FileURL,
+			},
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+
+		embeds := []*discordgo.MessageEmbed{embed}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: embeds,
+			},
+		})
+	}
+}
 
 func init() {
 	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
