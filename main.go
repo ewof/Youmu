@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/sirupsen/logrus"
@@ -22,7 +22,7 @@ var log = &logrus.Logger{
 
 // Bot parameters
 var (
-	GuildID        = flag.String("guild", "924047241096876044", "Test guild ID. If not passed - bot registers commands globally")
+	//GuildID        = flag.String("guild", "924047241096876044", "Test guild ID. If not passed - bot registers commands globally")
 	BotToken       = flag.String("token", os.Getenv("YOUMU_TOKEN"), "Bot access token")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
 )
@@ -171,7 +171,7 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 			Fields: []*discordgo.MessageEmbedField{
 				&discordgo.MessageEmbedField{
 					Name:   "Image Source",
-					Value: fmt.Sprintf("[%s](%s)", sourceSite, source),
+					Value:  fmt.Sprintf("[%s](%s)", sourceSite, source),
 					Inline: false,
 				},
 				&discordgo.MessageEmbedField{
