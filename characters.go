@@ -3,7 +3,7 @@ package main
 // "name of command":"tag_on_gelbooru"
 var characters = map[string]string{
 	// Touhou
-	"reimu":        "rhakurei_reimu",
+	"reimu":        "hakurei_reimu",
 	"marisa":       "kirisame_marisa",
 	"youmu":        "konpaku_youmu", // :soy: LOOOK IT'S THE BOTS NAME!!!!!
 	"yuyuko":       "saigyouji_yuyuko",
