@@ -22,7 +22,7 @@ var log = &logrus.Logger{
 
 // Bot parameters
 var (
-	//GuildID        = flag.String("guild", "924047241096876044", "Test guild ID. If not passed - bot registers commands globally")
+	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
 	BotToken       = flag.String("token", os.Getenv("YOUMU_TOKEN"), "Bot access token")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
 )
