@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ var log = &logrus.Logger{
 
 // Bot parameters
 var (
-	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
+	GuildID        = flag.String("guild", "929748108802412595", "Test guild ID. If not passed - bot registers commands globally")
 	BotToken       = flag.String("token", os.Getenv("YOUMU_TOKEN"), "Bot access token")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
 )
@@ -202,6 +203,31 @@ func sendGelbooru(s *discordgo.Session, i *discordgo.InteractionCreate, tags str
 	}
 }
 
+func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	if m.Author.ID == s.State.User.ID {
+		return
+	}
+
+	// for testing
+	// if m.GuildID != "924047241096876044" {
+	// return
+	// }
+
+	if regexp.MustCompile("blocked message").MatchString(m.Content) {
+		s.ChannelMessageSend(m.ChannelID, "https://media.discordapp.net/attachments/764447332288561152/947480845038538812/wow.gif")
+	}
+
+	if m.Content == "gasoline" && m.Author.ID == "489371664430268446" {
+		s.MessageReactionAdd(m.ChannelID, m.ID, ":witness:941500786037366846")
+	}
+
+	if len(m.Content) >= 28 && m.Content[0:28] == "https://media.discordapp.net" && m.Content[len(m.Content)-4:len(m.Content)] == ".mp4" {
+		s.ChannelMessageSendReply(m.ChannelID, "You are stupid, I fixed it\n"+m.Content[0:7]+"/cdn.discordapp.com/attachments"+m.Content[40:len(m.Content)], m.Reference())
+	}
+
+}
+
 func init() {
 	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
@@ -211,6 +237,7 @@ func init() {
 }
 
 func main() {
+	s.AddHandler(messageCreate)
 	s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Info("Bot is up!")
 	})
@@ -219,12 +246,12 @@ func main() {
 		log.Fatalf("Cannot open the session: %v", err)
 	}
 
-	for _, v := range commands {
-		_, err := s.ApplicationCommandCreate(s.State.User.ID, *GuildID, v)
-		if err != nil {
-			log.Errorln("Cannot create " + v.Name + " command: " + err.Error())
-		}
-	}
+	// for _, v := range commands {
+	// 	_, err := s.ApplicationCommandCreate(s.State.User.ID, *GuildID, v)
+	// 	if err != nil {
+	// 		log.Errorln("Cannot create " + v.Name + " command: " + err.Error())
+	// 	}
+	// }
 
 	defer s.Close()
 
